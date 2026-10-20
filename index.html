@@ -1,0 +1,299 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#087f5b">
+  <title>Rentify | Local rental marketplace</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- AUTHENTICATION SCREEN -->
+<div id="authScreen" class="auth-screen">
+  <section class="auth-intro">
+    <a href="#" class="auth-logo">
+      <span class="logo-symbol">R</span> rentify
+    </a>
+
+    <div class="intro-content">
+      <span class="intro-label">YOUR THINGS. WHEN YOU NEED THEM.</span>
+      <h1>Why buy it<br>when you can <span>rent it?</span></h1>
+      <p class="intro-text">
+        Access the things you need without the cost of owning them.
+        Find equipment, outfits, vehicles and more — all in one place.
+      </p>
+
+      <div class="benefit-list">
+        <div class="benefit">
+          <span>✓</span>
+          <div><strong>Rent on your terms</strong><small>Choose your dates and rental length.</small></div>
+        </div>
+        <div class="benefit">
+          <span>✓</span>
+          <div><strong>More choices, less expense</strong><small>Explore rentals across multiple categories.</small></div>
+        </div>
+        <div class="benefit">
+          <span>✓</span>
+          <div><strong>One account, many possibilities</strong><small>From cameras to construction tools.</small></div>
+        </div>
+      </div>
+
+      <div class="mini-categories">
+        <span>📷 Electronics</span>
+        <span>🛠️ Tools</span>
+        <span>👗 Fashion</span>
+        <span>🚗 Vehicles</span>
+        <span>🍽️ Kitchen</span>
+      </div>
+    </div>
+
+    <p class="intro-footer">© 2026 Rentify · A smarter way to access what you need.</p>
+  </section>
+
+  <section class="auth-side">
+    <div class="auth-card">
+      <div class="mobile-brand">
+        <span class="logo-symbol">R</span> rentify
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-auth="login">Log in</button>
+        <button class="auth-tab" data-auth="register">Create account</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="loginPanel">
+        <h2>Welcome back</h2>
+        <p class="form-subtitle">Log in to discover your next rental.</p>
+
+        <form id="loginForm" class="auth-form">
+          <label>Email address
+            <input name="email" type="email" placeholder="you@example.com"
+              autocomplete="email" required>
+          </label>
+
+          <label>Password
+            <input name="password" type="password" placeholder="Enter your password"
+              autocomplete="current-password" minlength="8" required>
+          </label>
+
+          <div class="form-options">
+            <label class="check-label">
+              <input type="checkbox" name="remember"> Remember me
+            </label>
+            <button type="button" class="link-btn" id="forgotBtn">Forgot password?</button>
+          </div>
+
+          <button type="submit" class="auth-submit">Log in to Rentify →</button>
+          <p class="auth-message" id="loginMessage" aria-live="polite"></p>
+        </form>
+
+        <p class="switch-copy">
+          New to Rentify?
+          <button class="link-btn" data-switch="register">Create an account</button>
+        </p>
+      </div>
+
+      <!-- REGISTRATION -->
+      <div id="registerPanel" class="hidden">
+        <h2>Create your account</h2>
+        <p class="form-subtitle">A few details to get you started.</p>
+
+        <form id="registerForm" class="auth-form">
+          <label>Full name
+            <input name="name" type="text" placeholder="Your full name"
+              autocomplete="name" maxlength="100" required>
+          </label>
+
+          <label>Email address
+            <input name="email" type="email" placeholder="you@example.com"
+              autocomplete="email" required>
+          </label>
+
+          <label>Phone number
+            <input name="phone" type="tel" placeholder="Your contact number"
+              autocomplete="tel" maxlength="20" required>
+          </label>
+
+          <label>Create password
+            <input name="password" type="password"
+              placeholder="At least 8 characters"
+              autocomplete="new-password" minlength="8" required>
+          </label>
+
+          <label>Confirm password
+            <input name="confirmPassword" type="password"
+              placeholder="Enter your password again"
+              autocomplete="new-password" minlength="8" required>
+          </label>
+
+          <div class="kyc-note">
+            <span class="kyc-icon">✓</span>
+            <div>
+              <strong>Identity verification (KYC)</strong>
+              <p>
+                To help protect renters and owners, identity verification
+                may be required before certain bookings. You won't be asked
+                to upload identity documents in this demo.
+              </p>
+            </div>
+          </div>
+
+          <label class="terms-check">
+            <input type="checkbox" name="terms" required>
+            <span>
+              I agree to the <button type="button" class="inline-link" id="termsBtn">Terms and Conditions</button>
+              and <button type="button" class="inline-link" id="privacyBtn">Privacy Policy</button>.
+            </span>
+          </label>
+
+          <button type="submit" class="auth-submit">Create my account →</button>
+          <p class="auth-message" id="registerMessage" aria-live="polite"></p>
+        </form>
+
+        <p class="switch-copy">
+          Already have an account?
+          <button class="link-btn" data-switch="login">Log in</button>
+        </p>
+      </div>
+
+      <p class="security-caption">🔒 Your account and rental journey, in one place.</p>
+    </div>
+  </section>
+</div>
+
+<!-- RENTAL APPLICATION: HIDDEN UNTIL LOGIN -->
+<div id="appScreen" class="hidden">
+  <header class="topbar">
+    <a class="brand" href="#"><span class="logo-symbol">R</span> rentify</a>
+
+    <div class="location">
+      <span>⌖</span>
+      <div><small>LOCATION</small><strong>Kathmandu Valley</strong></div>
+    </div>
+
+    <div class="top-actions">
+      <button class="icon-btn" id="bookingsBtn" aria-label="My bookings">▤</button>
+      <button class="profile-btn" id="accountBtn">My account</button>
+      <button class="logout-btn" id="logoutBtn">Log out</button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <aside class="sidebar">
+      <p class="side-heading">CATEGORIES</p>
+      <button class="side-link active" data-category="All">▦ All rentals</button>
+      <button class="side-link" data-category="Electronics">📷 Electronics</button>
+      <button class="side-link" data-category="Construction">🛠️ Construction</button>
+      <button class="side-link" data-category="Fashion">👗 Fashion</button>
+      <button class="side-link" data-category="Vehicles">🚗 Vehicles</button>
+      <button class="side-link" data-category="Kitchen">🍽️ Kitchen & party</button>
+      <button class="side-link" data-category="Events">🎉 Events</button>
+      <button class="side-link" data-category="Camping">⛺ Camping</button>
+      <button class="side-link" data-category="Furniture">🪑 Furniture</button>
+      <button class="side-link" data-category="Cleaning">🧹 Cleaning</button>
+      <button class="side-link" data-category="Sports">🏸 Sports</button>
+
+      <div class="sidebar-bottom">
+        <strong>Need help?</strong>
+        <p>Questions about your rental?</p>
+        <button class="link-btn" id="helpBtn">Get assistance →</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section class="search-panel">
+        <div>
+          <p class="eyebrow">RENTIFY RENTALS</p>
+          <h1>What do you need today?</h1>
+          <p class="muted">Find an item, choose your rental period and send a booking request.</p>
+        </div>
+
+        <form id="searchForm" class="search-bar">
+          <input id="searchInput" type="search"
+            placeholder="Search cameras, drills, dresses, vehicles...">
+          <select id="durationSelect" aria-label="Rental duration">
+            <option value="all">Any duration</option>
+            <option value="day">Daily</option>
+          </select>
+          <button class="auth-submit" type="submit">Search</button>
+        </form>
+      </section>
+
+      <section class="categories-section">
+        <div class="section-heading"><h2>Browse categories</h2></div>
+        <div class="category-strip" id="categoryStrip">
+          <button class="category-tile active" data-category="All"><span>▦</span>All</button>
+          <button class="category-tile" data-category="Electronics"><span>📷</span>Electronics</button>
+          <button class="category-tile" data-category="Construction"><span>🛠️</span>Construction</button>
+          <button class="category-tile" data-category="Fashion"><span>👗</span>Fashion</button>
+          <button class="category-tile" data-category="Vehicles"><span>🚗</span>Vehicles</button>
+          <button class="category-tile" data-category="Kitchen"><span>🍽️</span>Kitchen</button>
+          <button class="category-tile" data-category="Events"><span>🎉</span>Events</button>
+          <button class="category-tile" data-category="Camping"><span>⛺</span>Camping</button>
+          <button class="category-tile" data-category="Furniture"><span>🪑</span>Furniture</button>
+          <button class="category-tile" data-category="Cleaning"><span>🧹</span>Cleaning</button>
+          <button class="category-tile" data-category="Sports"><span>🏸</span>Sports</button>
+        </div>
+      </section>
+
+      <section id="rentals" class="results-section">
+        <div class="results-heading">
+          <div>
+            <h2 id="resultsTitle">Available rentals</h2>
+            <p class="muted" id="resultCount"></p>
+          </div>
+          <select id="sortSelect" aria-label="Sort items">
+            <option value="recommended">Recommended</option>
+            <option value="low">Price: low to high</option>
+            <option value="high">Price: high to low</option>
+            <option value="name">Name: A to Z</option>
+          </select>
+        </div>
+
+        <div class="filter-row">
+          <button class="filter-chip active" data-filter="all">All</button>
+          <button class="filter-chip" data-filter="day">Daily</button>
+        </div>
+
+        <div class="product-grid" id="productGrid"></div>
+        <div class="empty-state hidden" id="emptyState">
+          <h3>No rentals found</h3>
+          <p>Try a different search or category.</p>
+          <button class="auth-submit" id="resetBtn">Show all rentals</button>
+        </div>
+      </section>
+
+      <section class="owner-panel">
+        <div>
+          <h2>Have something to rent out?</h2>
+          <p class="muted">List your equipment, outfits or other items.</p>
+        </div>
+        <button class="auth-submit" id="listItemBtn">+ List an item</button>
+      </section>
+
+      <footer class="app-footer">© 2026 Rentify <span>Local rental marketplace</span></footer>
+    </main>
+  </div>
+
+  <nav class="mobile-nav">
+    <button data-nav="home">⌂<span>Home</span></button>
+    <button data-nav="categories">▦<span>Categories</span></button>
+    <button data-nav="bookings">▤<span>Bookings</span></button>
+    <button data-nav="account">♙<span>Account</span></button>
+  </nav>
+</div>
+
+<!-- REUSABLE DIALOG -->
+<div class="modal-backdrop hidden" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
