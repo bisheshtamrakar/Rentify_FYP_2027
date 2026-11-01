@@ -5,6 +5,8 @@ const $all = selector => Array.from(document.querySelectorAll(selector));
 const state = {
   user: null,
   listings: [],
+  unreadNotifications: 0,
+  notificationsLoaded: false,
   category: "All",
   search: "",
   duration: "all",
@@ -29,7 +31,19 @@ function formatDate(value) {
 }
 
 function todayString() {
-  const date = new Date();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kathmandu",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function addDays(value, days) {
+  const date = new Date(`${value}T00:00:00`);
+  date.setDate(date.getDate() + days);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
@@ -77,6 +91,7 @@ function showApp() {
   updateUserInterface();
   renderCategories();
   loadListings().catch(error => notify(error.message, true));
+  refreshNotifications(false).catch(error => console.error("Could not load notifications:", error));
 }
 
 function showLoginForm() {
@@ -101,6 +116,9 @@ function updateUserInterface() {
     listButton.disabled = !state.user;
     listButton.title = state.user ? "List an item for rent" : "Log in to list an item";
   }
+  state.notificationsLoaded = false;
+  state.unreadNotifications = 0;
+  updateNotificationBadge();
 }
 
 function visibleListings() {
@@ -134,6 +152,7 @@ function renderListings() {
   grid.innerHTML = items.map(item => `
     <article class="product-card">
       <img src="${escapeHTML(item.image)}" alt="${escapeHTML(item.name)}" loading="lazy">
+      ${item.rentedUntil ? `<span class="rented-badge">Rented until ${formatDate(item.rentedUntil)}</span>` : ""}
       <div class="product-body">
         <div class="product-head">
           <div><p class="product-category">${escapeHTML(item.category)}</p><h3>${escapeHTML(item.name)}</h3></div>
@@ -203,26 +222,38 @@ function openReserve(itemId) {
   if (!item) return notify("This item is no longer available.", true);
   if (item.ownerId === state.user?.id) return notify("You cannot book your own item.", true);
   openModal(`
+    <p class="eyebrow">YOUR RENTAL REQUEST</p>
     <h2 id="modalTitle">Reserve ${escapeHTML(item.name)}</h2>
-    <p class="muted">Send a booking request to ${escapeHTML(item.ownerName)}. The owner must approve it.</p>
+    <p class="muted">Choose your dates and pickup details. The owner will review your request before the booking is confirmed.</p>
     <div class="booking-summary">
       <div class="booking-row"><span>Daily price</span><strong>${formatPrice(item.price)}</strong></div>
       <div class="booking-row"><span>Owner</span><strong>${escapeHTML(item.ownerName)}</strong></div>
       <div class="booking-row"><span>Pickup</span><strong>${escapeHTML(item.location)}</strong></div>
     </div>
     <form id="reserveForm" class="modal-form">
-      <label>Start date<input name="startDate" type="date" min="${todayString()}" required></label>
-      <label>Number of days<input name="durationDays" type="number" min="1" max="30" value="1" required></label>
+      <label>Rental starts<input name="startDate" type="date" min="${todayString()}" required></label>
+      <label>Rental length (1–30 days)<input name="durationDays" type="number" min="1" max="30" value="1" required></label>
       <label>Pickup location<input name="pickupLocation" value="${escapeHTML(item.location)}" maxlength="120" required></label>
-      <p class="muted">Total: <strong id="bookingTotal">${formatPrice(item.price)}</strong>. Payment is handled offline.</p>
-      <button type="submit" class="auth-submit">Send booking request</button>
+      <div class="booking-checkout">
+        <div class="booking-row"><span>Estimated return</span><strong id="bookingReturnDate">Choose a start date</strong></div>
+        <div class="booking-row"><span>${formatPrice(item.price)} × <span id="bookingDays">1 day</span></span><strong id="bookingTotal">${formatPrice(item.price)}</strong></div>
+      </div>
+      <p class="checkout-note">No online charge. Payment is arranged directly with the owner after approval.</p>
+      <button type="submit" class="auth-submit">Send reservation request</button>
     </form>`);
   const form = $("#reserveForm");
   const daysInput = form.elements.durationDays;
-  daysInput.addEventListener("input", () => {
+  const dateInput = form.elements.startDate;
+  const updateCheckout = () => {
     const days = Math.min(30, Math.max(1, Number(daysInput.value) || 1));
+    $("#bookingDays").textContent = `${days} day${days === 1 ? "" : "s"}`;
     $("#bookingTotal").textContent = formatPrice(item.price * days);
-  });
+    $("#bookingReturnDate").textContent = dateInput.value
+      ? formatDate(addDays(dateInput.value, days - 1))
+      : "Choose a start date";
+  };
+  daysInput.addEventListener("input", updateCheckout);
+  dateInput.addEventListener("input", updateCheckout);
   form.addEventListener("submit", async event => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(form));
@@ -230,7 +261,7 @@ function openReserve(itemId) {
     values.durationDays = Number(values.durationDays);
     try {
       await api("/api/bookings", { method: "POST", body: JSON.stringify(values) });
-      closeModal();
+      await openBookings();
       notify("Booking request sent. Check My bookings for updates.");
     } catch (error) {
       notify(error.message, true);
@@ -294,6 +325,70 @@ async function openBookings() {
   } catch (error) {
     $("#modalContent").innerHTML = `<h2 id="modalTitle">My bookings</h2><p class="error-copy">${escapeHTML(error.message)}</p>`;
     return;
+  }
+}
+
+function updateNotificationBadge() {
+  const badge = $("#notificationCount");
+  const button = $("#notificationsBtn");
+  if (!badge || !button) return;
+  badge.textContent = state.unreadNotifications > 9 ? "9+" : String(state.unreadNotifications);
+  badge.classList.toggle("hidden", state.unreadNotifications === 0);
+  button.setAttribute("aria-label", `Notifications${state.unreadNotifications ? `, ${state.unreadNotifications} unread` : ""}`);
+}
+
+async function refreshNotifications(announce = true) {
+  if (!state.user) return;
+  const result = await api("/api/notifications");
+  const previousCount = state.unreadNotifications;
+  state.unreadNotifications = result.unreadCount;
+  updateNotificationBadge();
+  if (announce && state.notificationsLoaded && result.unreadCount > previousCount) {
+    notify("You have a new rental notification.");
+  }
+  state.notificationsLoaded = true;
+}
+
+async function openNotifications() {
+  openModal(`<p class="eyebrow">STAY IN THE LOOP</p><h2 id="modalTitle">Notifications</h2><div class="booking-loading">Loading notifications…</div>`);
+  try {
+    const result = await api("/api/notifications");
+    state.unreadNotifications = result.unreadCount;
+    updateNotificationBadge();
+    $("#modalContent").innerHTML = `
+      <div class="notification-heading"><div><p class="eyebrow">STAY IN THE LOOP</p><h2 id="modalTitle">Notifications</h2></div>
+        ${result.unreadCount ? '<button type="button" class="booking-secondary" id="markAllReadBtn">Mark all read</button>' : ""}</div>
+      <div class="notification-list">
+        ${result.notifications.length ? result.notifications.map(notification => `
+          <article class="notification-card ${notification.read ? "" : "unread"}">
+            <div class="notification-card-top"><strong>${escapeHTML(notification.title)}</strong>
+              <small>${notification.createdAt ? new Date(notification.createdAt).toLocaleString() : ""}</small></div>
+            <p>${escapeHTML(notification.message)}</p>
+            ${notification.read ? "" : `<button type="button" class="notification-read-btn" data-notification-id="${escapeHTML(notification.id)}">Mark as read</button>`}
+          </article>`).join("") : '<p class="muted notification-empty">You’re all caught up. Reservation updates and return reminders will appear here.</p>'}
+      </div>`;
+  } catch (error) {
+    $("#modalContent").innerHTML = `<h2 id="modalTitle">Notifications</h2><p class="error-copy">${escapeHTML(error.message)}</p>`;
+  }
+}
+
+async function markNotificationRead(id) {
+  try {
+    await api(`/api/notifications/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ action: "read" }) });
+    await openNotifications();
+    await refreshNotifications(false);
+  } catch (error) {
+    notify(error.message, true);
+  }
+}
+
+async function markAllNotificationsRead() {
+  try {
+    await api("/api/notifications/read-all", { method: "POST" });
+    await openNotifications();
+    await refreshNotifications(false);
+  } catch (error) {
+    notify(error.message, true);
   }
 }
 
@@ -422,6 +517,7 @@ function bindEvents() {
   $("#logoutBtn").addEventListener("click", logoutUser);
   $("#accountBtn").addEventListener("click", showAccount);
   $("#bookingsBtn").addEventListener("click", () => state.user ? openBookings() : showAuth());
+  $("#notificationsBtn").addEventListener("click", () => state.user ? openNotifications() : showAuth());
   $("#listItemBtn").addEventListener("click", () => state.user ? itemListingForm() : showAuth(true));
   $("#modalClose").addEventListener("click", closeModal);
   $("#modalBackdrop").addEventListener("click", event => {
@@ -430,6 +526,9 @@ function bindEvents() {
   $("#modalContent").addEventListener("click", event => {
     const button = event.target.closest(".booking-action");
     if (button) handleBookingAction(button);
+    if (event.target.closest("#markAllReadBtn")) markAllNotificationsRead();
+    const readButton = event.target.closest(".notification-read-btn");
+    if (readButton) markNotificationRead(readButton.dataset.notificationId);
   });
   $("#productGrid").addEventListener("click", event => {
     const button = event.target.closest(".reserve-btn");
@@ -491,6 +590,9 @@ function bindEvents() {
   $("#termsBtn").addEventListener("click", () => showInfo("Terms and Conditions", "Rentify connects renters and item owners. Owners must provide accurate listings; renters must return items as agreed. Payment is arranged directly between the renter and owner."));
   $("#privacyBtn").addEventListener("click", () => showInfo("Privacy Policy", "Account details, listings, and booking records are stored in this local app database. Do not use real personal or payment data in a public deployment until privacy and security controls are configured."));
   $("#helpBtn").addEventListener("click", () => showInfo("Rentify assistance", "For a booking, open My bookings to check its status. Contact the item owner directly to coordinate pickup and offline payment."));
+  window.setInterval(() => {
+    refreshNotifications().catch(error => console.error("Could not refresh notifications:", error));
+  }, 30000);
 }
 
 async function initialize() {

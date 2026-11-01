@@ -2,19 +2,8 @@
   "name": "rentify-local-marketplace",
   "version": "1.0.0",
   "private": true,
-  "description": "Local Rentify rental marketplace with an Express API and SQLite",
+  "description": "Local Rentify marketplace with a FastAPI backend and MongoDB",
   "scripts": {
-    "start": "node server.js"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.10.0",
-    "express": "^5.1.0",
-    "express-rate-limit": "^7.5.0",
-    "express-session": "^1.18.2",
-    "helmet": "^8.1.0"
+    "start": "python -m uvicorn app:app --host 127.0.0.1 --port 3000"
   }
 }
